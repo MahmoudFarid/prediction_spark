@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from pyspark import SparkContext
 from pyspark.sql import SparkSession, Row
@@ -147,8 +147,8 @@ def create_prediction_df(training_df, prediction_period, other_column=None):
         last_date = training_df.select('Date').distinct().orderBy('Date').select(last('Date')).collect()[0][0]
         last_id = training_df.select('id').distinct().orderBy('id').select(max('id')).collect()[0][0]
 
-        date_rows = list(Row(float(last_id + i), date(last_date.year, last_date.month + i, 1))
-                               for i in range(1, prediction_period + 1))
+        date_rows = list(Row(float(last_id + i), date(last_date.year, last_date.month, 1) + timedelta(days=i*31))
+                         for i in range(1, prediction_period + 1))
 
         date_df = spark.createDataFrame(date_rows, ['id', 'Date'])
 

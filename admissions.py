@@ -55,9 +55,9 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     'Date', 'id'))
 
                 if final_prediction_df:
-                    final_prediction_df.union(prediction_df.select('Date', 'prediction'))
+                    final_prediction_df.union(prediction_df.select('Date', round('prediction', 0)))
                 else:
-                    final_prediction_df = prediction_df.select('Date', 'prediction')
+                    final_prediction_df = prediction_df.select('Date', round('prediction', 0))
 
             else:
                 training_df = overall_prediction_grouping(csv_file_date, prediction_dataset=prediction_df
@@ -69,9 +69,10 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     prediction_dataset.withColumn('id', to_vector(col('id'))).select('Date', 'id'))
 
                 if final_prediction_df:
-                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date', 'prediction'))
+                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date',
+                                                                                         round('prediction', 0)))
                 else:
-                    final_prediction_df = prediction_df.select('Date', 'prediction')
+                    final_prediction_df = prediction_df.select('Date', round('prediction', 0))
 
         if final_prediction_df:
             final_prediction_df.select('Date', 'prediction').coalesce(1).write.csv(
@@ -93,10 +94,10 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                 prediction_df = model.transform(specialized_prediction_dataset)
 
                 if final_prediction_df:
-                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date',
-                                                                                         column_name, 'prediction'))
+                    final_prediction_df = final_prediction_df.union(prediction_df.select(
+                        'Date', column_name, round('prediction', 0)))
                 else:
-                    final_prediction_df = prediction_df.select('Date', column_name, 'prediction')
+                    final_prediction_df = prediction_df.select('Date', column_name, round('prediction', 0))
 
             else:
                 training_df = specialized_prediction_grouping(csv_file_date,
@@ -110,13 +111,13 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                 prediction_df = model.transform(specialized_prediction_dataset)
 
                 if final_prediction_df:
-                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date',
-                                                                                         column_name, 'prediction'))
+                    final_prediction_df = final_prediction_df.union(prediction_df.select(
+                        'Date', column_name, round('prediction', 0)))
                 else:
-                    final_prediction_df = prediction_df.select('Date', column_name, 'prediction')
+                    final_prediction_df = prediction_df.select('Date', column_name, round('prediction', 0))
 
         if final_prediction_df:
-            final_prediction_df.select('Date', column_name,'prediction').coalesce(1).write.csv(
+            final_prediction_df.select('Date', column_name, 'prediction').coalesce(1).write.csv(
                 'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
         else:
             raise ValueError('Prediction period should be greater than 1.')

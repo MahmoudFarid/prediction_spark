@@ -42,6 +42,7 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
     csv_file_date = csv_file.withColumn('Date', change_to_month_func(col('Removal Date'))).drop('Removal Date')
 
     if predict_by.lower() == 'overall':
+        final_prediction_df = ''
         for idx in xrange(1, predict_period + 1):
             if idx == 1:
                 training_df = overall_prediction_grouping(csv_file_date)
@@ -50,11 +51,12 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
 
                 prediction_df = model.transform(prediction_dataset.withColumn('id', to_vector(col('id'))).select(
                     'Date', 'id'))
-                collected_prediction = prediction_df.collect()
-                for i in xrange(0, len(collected_prediction)):
-                    print "Prediction for %s-%s is %s" % (
-                        collected_prediction[i]['Date'].month, collected_prediction[i]['Date'].year,
-                        str(int(collected_prediction[i]['prediction'])))
+
+                if final_prediction_df:
+                    final_prediction_df.union(prediction_df.select('Date', 'prediction'))
+                else:
+                    final_prediction_df = prediction_df.select('Date', 'prediction')
+
             else:
                 training_df = overall_prediction_grouping(csv_file_date, prediction_dataset=prediction_df
                                                           if prediction_df else None)
@@ -63,13 +65,20 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
 
                 prediction_df = model.transform(
                     prediction_dataset.withColumn('id', to_vector(col('id'))).select('Date', 'id'))
-                collected_prediction = prediction_df.collect()
-                for i in xrange(0, len(collected_prediction)):
-                    print "Prediction for %s-%s is %s" % (
-                        collected_prediction[i]['Date'].month, collected_prediction[i]['Date'].year,
-                        str(int(collected_prediction[i]['prediction'])))
+
+                if final_prediction_df:
+                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date', 'prediction'))
+                else:
+                    final_prediction_df = prediction_df.select('Date', 'prediction')
+
+        if final_prediction_df:
+            final_prediction_df.select('Date', 'prediction').coalesce(1).write.csv(
+                'Prediction_overall_%s.csv' % predict_period, mode='overwrite', header=True)
+        else:
+            raise ValueError('Prediction period should be greater than 1.')
 
     else:
+        final_prediction_df = ''
         str_name = predict_by.lower()
         column_name = str_name[0].capitalize() + str_name[1:]
         for idx in xrange(1, predict_period + 1):
@@ -81,11 +90,12 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
 
                 prediction_df = model.transform(specialized_prediction_dataset)
 
-                collected_prediction = prediction_df.collect()
-                for i in xrange(0, len(collected_prediction)):
-                    print "Prediction for %s-%s and %s is %s" % (
-                        collected_prediction[i]['Date'].month, collected_prediction[i]['Date'].year,
-                        collected_prediction[i][column_name], str(int(collected_prediction[i]['prediction'])))
+                if final_prediction_df:
+                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date',
+                                                                                         column_name, 'prediction'))
+                else:
+                    final_prediction_df = prediction_df.select('Date', column_name, 'prediction')
+
             else:
                 training_df = specialized_prediction_grouping(csv_file_date,
                                                               prediction_dataset=prediction_df
@@ -97,11 +107,17 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
 
                 prediction_df = model.transform(specialized_prediction_dataset)
 
-                collected_prediction = prediction_df.collect()
-                for i in xrange(0, len(collected_prediction)):
-                    print "Prediction for %s-%s and %s is %s" % (
-                        collected_prediction[i]['Date'].month, collected_prediction[i]['Date'].year,
-                        collected_prediction[i][column_name], str(int(collected_prediction[i]['prediction'])))
+                if final_prediction_df:
+                    final_prediction_df = final_prediction_df.union(prediction_df.select('Date',
+                                                                                         column_name, 'prediction'))
+                else:
+                    final_prediction_df = prediction_df.select('Date', column_name, 'prediction')
+
+        if final_prediction_df:
+            final_prediction_df.select('Date', 'prediction').coalesce(1).write.csv(
+                'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
+        else:
+            raise ValueError('Prediction period should be greater than 1.')
 
 
 def overall_prediction_grouping(csv, prediction_dataset=None):

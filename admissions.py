@@ -116,7 +116,7 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     final_prediction_df = prediction_df.select('Date', column_name, 'prediction')
 
         if final_prediction_df:
-            final_prediction_df.select('Date', 'prediction').coalesce(1).write.csv(
+            final_prediction_df.select('Date', column_name,'prediction').coalesce(1).write.csv(
                 'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
         else:
             raise ValueError('Prediction period should be greater than 1.')

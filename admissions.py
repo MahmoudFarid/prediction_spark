@@ -1,3 +1,5 @@
+import sys
+
 from datetime import datetime, date, timedelta
 
 from pyspark import SparkContext
@@ -274,3 +276,14 @@ def specialized_prediction_training(grouped_with_id, column):
 
     return create_model(grouped_with_id, features_col='features', label_col='count(' + column + ')',
                         max_bins=maximum_features)
+
+
+if __name__ == '__main__':
+    try:
+        path = sys.argv[1]
+        predict_by = sys.argv[2]
+        period = int(sys.argv[3])
+        predict_admissions(path, predict_by, period)
+    except IndexError:
+        print "Usage: run.py <CSV path> <predict on> <period>"
+        sys.exit(1)

@@ -17,6 +17,7 @@ prediction_features = ['overall', 'doctor', 'specialty', 'procedure', 'priority'
 change_to_month_func = udf(lambda record: int(datetime.strftime(datetime.strptime(record, '%d/%m/%Y'), '%Y%m')),
                            IntegerType())
 change_to_date_func = udf(lambda record: datetime.strptime(str(record), '%Y%m'), DateType())
+change_date_to_month = udf(lambda record: datetime(record.year, record.month, 1), DateType())
 to_vector = udf(lambda record: Vectors.dense(record), VectorUDT())
 to_vectors = udf(lambda col_a, col_b: Vectors.sparse(col_a, col_b))
 
@@ -75,8 +76,10 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     final_prediction_df = prediction_df.select('Date', round('prediction', 0))
 
         if final_prediction_df:
-            final_prediction_df.select('Date', col('round(prediction)').alias('prediction')).coalesce(1).write.csv(
+            final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
+                'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
                 'Prediction_overall_%s.csv' % predict_period, mode='overwrite', header=True)
+
         else:
             raise ValueError('Prediction period should be greater than 1.')
 
@@ -117,8 +120,9 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     final_prediction_df = prediction_df.select('Date', column_name, round('prediction', 0))
 
         if final_prediction_df:
-            final_prediction_df.select('Date', column_name, col('round(prediction)').alias('prediction')).coalesce(
-                1).write.csv('Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
+            final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
+                'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+                'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
         else:
             raise ValueError('Prediction period should be greater than 1.')
 

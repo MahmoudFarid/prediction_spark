@@ -26,7 +26,7 @@ scobj = SparkContext.getOrCreate()
 spark = SparkSession(scobj).builder.config('spark.sql.crossJoin.enabled', 'true').getOrCreate()
 
 
-def predict_admissions(csv, predict_by='Overall', predict_period=3):
+def predict_admissions(csv, predict_by='Overall', predict_period=3, save_path=None):
     """
     The function is the entry point to the prediction module.
     :param csv: --string: path to the csv file containing the data
@@ -76,9 +76,14 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     final_prediction_df = prediction_df.select('Date', round('prediction', 0))
 
         if final_prediction_df:
-            final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
-                'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
-                'Prediction_overall_%s.csv' % predict_period, mode='overwrite', header=True)
+            if save_path:
+                final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
+                    'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+                    '%s/Prediction_overall_%s.csv' % (save_path, predict_period), mode='overwrite', header=True)
+            else:
+                final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
+                    'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+                    'Prediction_overall_%s.csv' % predict_period, mode='overwrite', header=True)
 
         else:
             raise ValueError('Prediction period should be greater than 1.')
@@ -120,9 +125,14 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3):
                     final_prediction_df = prediction_df.select('Date', column_name, round('prediction', 0))
 
         if final_prediction_df:
-            final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
-                'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
-                'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
+            if save_path:
+                final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
+                    'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+                    '%s/Prediction_%s_%s.csv' % (save_path, predict_by, predict_period), mode='overwrite', header=True)
+            else:
+                final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
+                    'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+                    'Prediction_%s_%s.csv' % (predict_by, predict_period), mode='overwrite', header=True)
         else:
             raise ValueError('Prediction period should be greater than 1.')
 
@@ -288,7 +298,8 @@ if __name__ == '__main__':
         path = sys.argv[1]
         predict_by = sys.argv[2]
         period = int(sys.argv[3])
-        predict_admissions(path, predict_by, period)
+        save_path = sys.argv[4]
+        predict_admissions(path, predict_by, period, save_path)
     except IndexError:
         print "Usage: run.py <CSV path> <predict on> <period>"
         sys.exit(1)

@@ -79,7 +79,7 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3, save_path=No
             if save_path:
                 final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
                     'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
-                    '%s/Prediction_overall_%s.csv' % (save_path, predict_period), mode='overwrite', header=True)
+                    '%sPrediction_overall_%s.csv' % (save_path, predict_period), mode='overwrite', header=True)
             else:
                 final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
                     'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
@@ -128,7 +128,7 @@ def predict_admissions(csv, predict_by='Overall', predict_period=3, save_path=No
             if save_path:
                 final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
                     'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
-                    '%s/Prediction_%s_%s.csv' % (save_path, predict_by, predict_period), mode='overwrite', header=True)
+                    '%sPrediction_%s_%s.csv' % (save_path, predict_by, predict_period), mode='overwrite', header=True)
             else:
                 final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
                     'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(

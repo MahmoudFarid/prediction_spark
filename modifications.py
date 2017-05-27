@@ -194,11 +194,15 @@ def get_date_column_name(column_names):
 
     return ''
 
+
 if __name__ == '__main__':
     try:
         path = sys.argv[1]
         if 'csv' not in path:
             raise ValueError("File should be in csv format")
+
+        if 'dmission' not in path:
+            raise ValueError("This file for Admissions only!")
 
         predict_by = sys.argv[2]
         period = int(sys.argv[3])

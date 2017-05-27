@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import col, udf, row_number, last, max, round
 from pyspark.sql.window import Window
-from pyspark.sql.types import DateType, StringType, IntegerType
+from pyspark.sql.types import DateType, StringType, IntegerType, DoubleType
 from pyspark.ml.regression import GeneralizedLinearRegression
 from pyspark.ml.linalg import Vectors, DenseVector, VectorUDT
 from pyspark.ml.feature import StringIndexer, VectorAssembler
@@ -22,6 +22,7 @@ change_to_date_func = udf(lambda record: datetime.strptime(str(record), '%Y%m'),
 change_date_to_month = udf(lambda record: datetime(record.year, record.month, 1), DateType())
 to_vector = udf(lambda record: Vectors.dense(record), VectorUDT())
 to_vectors = udf(lambda col_a, col_b: Vectors.sparse(col_a, col_b))
+negative_to_zero = udf(lambda col: 0.0 if col < 0.0 else col, DoubleType())
 
 
 def perform_prediction(csv, predict_by='Overall', predict_period=3):
@@ -53,12 +54,12 @@ def perform_prediction(csv, predict_by='Overall', predict_period=3):
         prediction_dataset = create_prediction_df(training_df, predict_period)
 
         prediction_df = model.transform(prediction_dataset)
-        final_prediction_df = prediction_df.select('Date', round('prediction', 0))
+        final_prediction_df = prediction_df.select('Date', round('prediction', 0)).withColumn(
+            'prediction', negative_to_zero(col('round(prediction, 0)')))
 
         # print "The mean average error is %s" % evaluator.evaluate(prediction_df, {evaluator.metricName: "mae"})
 
-        return final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), col(
-                'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+        return final_prediction_df.select(change_date_to_month(col('Date')).alias('Date')).coalesce(1).write.csv(
             '%s%sprediction_%s_%s_%s.csv' % (os.path.dirname(csv), os.sep, os.path.split(csv)[1].split()[0],
                                              predict_by, predict_period), mode='overwrite', header=True)
 
@@ -75,12 +76,13 @@ def perform_prediction(csv, predict_by='Overall', predict_period=3):
 
         prediction_df = model.transform(specialized_prediction_dataset)
 
-        final_prediction_df = prediction_df.select('Date', round('prediction', 0), column_name)
+        final_prediction_df = prediction_df.select('Date', round('prediction', 0), column_name).withColumn(
+            'prediction', negative_to_zero(col('round(prediction, 0)')))
 
         # print "The mean average error is %s" % evaluator.evaluate(prediction_df, {evaluator.metricName: "mae"})
 
-        return final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), column_name, col(
-            'round(prediction, 0)').alias('prediction')).coalesce(1).write.csv(
+        return final_prediction_df.select(change_date_to_month(col('Date')).alias(
+            'Date'), column_name, 'prediction').coalesce(1).write.csv(
             '%s%sprediction_%s_%s_%s.csv' % (os.path.dirname(csv), os.sep, os.path.split(csv)[1].split()[0],
                                              predict_by, predict_period), mode='overwrite', header=True)
 

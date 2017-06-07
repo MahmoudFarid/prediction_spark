@@ -60,8 +60,7 @@ def perform_prediction(csv, predict_by='Overall', predict_period=3):
         # print "The mean average error is %s" % evaluator.evaluate(prediction_df, {evaluator.metricName: "mae"})
 
         return final_prediction_df.select(change_date_to_month(col('Date')).alias('Date'), 'prediction').coalesce(
-            1).write.csv('%s%sprediction_%s_%s_%s.csv' % (os.path.dirname(csv), os.sep, os.path.basename(
-                os.path.splitext(csv)[0]), predict_by, predict_period),
+            1).write.csv('%s%sprediction_%s_%s.csv' % (os.path.dirname(csv), os.sep, predict_by, predict_period),
                          mode='overwrite', header=True)
 
     else:
@@ -84,8 +83,7 @@ def perform_prediction(csv, predict_by='Overall', predict_period=3):
 
         return final_prediction_df.select(change_date_to_month(col('Date')).alias(
             'Date'), column_name, 'prediction').coalesce(1).write.csv(
-            '%s%sprediction_%s_%s_%s.csv' % (os.path.dirname(csv), os.sep, os.path.basename(os.path.splitext(csv)[0]),
-                                             predict_by, predict_period),
+            '%s%sprediction_%s_%s.csv' % (os.path.dirname(csv), os.sep, predict_by, predict_period),
             mode='overwrite', header=True)
 
 
